@@ -1,0 +1,79 @@
+name: Main Rendering
+on:
+  repository_dispatch:
+    types: [ 'render' ]
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    name: Render ${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}
+    if: ${{ github.event.client_payload.repository_url != '' && github.event.client_payload.source_branch != '' && github.event.client_payload.target_branch_directory != '' }}
+    steps:
+      - name: Notify on start
+        if: ${{ always() }}
+        uses: distributhor/workflow-webhook@v1
+        env:
+          webhook_url: ${{ secrets.WEBHOOK_START_URL }}
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
+          data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+
+      - name: Render Repository
+        uses: TYPO3-Documentation/gh-render-action@0.0.1
+        id: rendering
+        with:
+          repository_url: ${{ github.event.client_payload.repository_url }}
+          source_branch: ${{ github.event.client_payload.source_branch }}
+          target_branch_directory: ${{ github.event.client_payload.target_branch_directory }}
+
+      - name: Publish archive with result
+        uses: actions/upload-artifact@v1
+        with:
+          name: result
+          path: ${{ steps.rendering.outputs.renderedPath }}
+
+      - name: Notify on failure
+        if: ${{ failure() }}
+        uses: distributhor/workflow-webhook@v1
+        env:
+          webhook_url: ${{ secrets.WEBHOOK_URL }}
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
+          data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy ${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}
+    needs: render
+    if: ${{ github.event.client_payload.type_short != '' && github.event.client_payload.vendor != '' && github.event.client_payload.name != '' && github.event.client_payload.target_branch_directory != ''}}
+    steps:
+      - uses: actions/download-artifact@v1
+        with:
+          name: result
+          path: result
+
+      - name: Upload Documentation
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DEPLOY_DOCS_HOST }}
+          username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: "result/"
+          rm: true
+          strip_components: 1
+          tar_tmp_path: ${{ secrets.TMP_TARGET_PATH }}
+          target: ${{ secrets.TMP_TARGET_PATH }}/${{ github.event.client_payload.type_short }}/${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}/${{ github.event.client_payload.target_branch_directory }}
+
+      - name: Notify on failure
+        if: ${{ failure() }}
+        uses: distributhor/workflow-webhook@v1
+        env:
+          webhook_url: ${{ secrets.WEBHOOK_URL }}
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
+          data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+
+      - name: Notify on success
+        if: ${{ success() }}
+        uses: distributhor/workflow-webhook@v1
+        env:
+          webhook_url: ${{ secrets.WEBHOOK_URL }}
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
+          data: '{"success":true,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
