@@ -1,0 +1,34 @@
+name: Main Deletion Job
+on:
+  repository_dispatch:
+    types: [ 'delete' ]
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    name: "Delete ${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}:${{ github.event.client_payload.target_branch_directory }}"
+    if: ${{ github.event.client_payload.type_short != '' && github.event.client_payload.name != '' && github.event.client_payload.vendor != '' && github.event.client_payload.target_branch_directory != '' }}
+    steps:
+      - name: "Deleting ${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}:${{ github.event.client_payload.target_branch_directory }}"
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_DOCS_HOST }}
+          username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: rm -Rf ${{ secrets.TMP_TARGET_PATH }}/${{ github.event.client_payload.type_short }}/${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}/${{ github.event.client_payload.target_branch_directory }}
+
+      - name: Notify on failure
+        if: ${{ failure() }}
+        uses: distributhor/workflow-webhook@v1
+        env:
+          webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
+          data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+
+      - name: Notify on success
+        if: ${{ success() }}
+        uses: distributhor/workflow-webhook@v1
+        env:
+          webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
+          webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
+          data: '{"success":true,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
