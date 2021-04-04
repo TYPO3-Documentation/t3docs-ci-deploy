@@ -1,0 +1,84 @@
+name: Fluid ViewHelper Documentation
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        core: ['master', '10.4', '9.5']
+      fail-fast: false
+    env:
+      TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+
+      - name: Checkout Fluid Documentation Generator
+        uses: actions/checkout@v2
+        with:
+          repository: 'TYPO3-Documentation/fluid-documentation-generator'
+          fetch-depth: 0
+          path: generator
+
+      - name: Checkout Core ${{ matrix.core }}
+        uses: actions/checkout@v2
+        with:
+          repository: 'TYPO3/TYPO3.CMS'
+          path: core
+          ref: ${{ matrix.core }}
+
+      - name: Install Schema Generator
+        working-directory: ./core
+        run: |
+          composer require -o -n --no-progress typo3/fluid-schema-generator "^2.1"
+
+      - name: Generate Schemata
+        working-directory: ./core
+        run: |
+          mkdir -p ../schemas/typo3fluid/fluid/latest
+          ./bin/generateschema TYPO3Fluid\\\Fluid > ../schemas/typo3fluid/fluid/latest/schema.xsd
+          mkdir -p ../schemas/typo3/core/latest
+          ./bin/generateschema TYPO3\\\CMS\\\Core > ../schemas/typo3/core/latest/schema.xsd
+          mkdir -p ../schemas/typo3/fluid/latest
+          ./bin/generateschema TYPO3\\\CMS\\\Fluid > ../schemas/typo3/fluid/latest/schema.xsd
+          mkdir -p ../schemas/typo3/backend/latest
+          ./bin/generateschema TYPO3\\\CMS\\\Backend > ../schemas/typo3/backend/latest/schema.xsd
+
+
+      - name: Convert to Rst
+        working-directory: ./generator
+        run: |
+          composer install --no-dev -n -o --no-progress
+          cp -r ../schemas/* schemas/
+          ./bin/generate-fluid-documentation
+          mkdir -p ../documentation
+          cp -r public/* ../documentation/
+          find ../documentation -type f -name '*.xsd' -delete
+          find ../documentation -type f -name '*.json' -delete
+          find ../documentation -type f -name '*.html' -delete
+
+      - name: "Checkout ViewHelper Docs: ${{ matrix.core }}"
+        uses: actions/checkout@v2
+        with:
+          repository: 'TYPO3-Documentation/TYPO3CMS-Reference-ViewHelper'
+          path: viewhelpers
+          ref: ${{ matrix.core }}
+          token: ${{ secrets.GH_PUSH_TOKEN }}
+
+      - name: Update repository
+        working-directory: ./viewhelpers
+        run: |
+          rm -rf Documentation/typo3 Documentation/typo3fluid
+          cp -r ../documentation/* Documentation/
+          git config user.name "TYPO3 Documentation Team"
+          git config user.email "documentation-automation@typo3.com"
+          git add .
+          git commit -m '[BOT][TASK] Automatic Update of ViewHelper reference'
+          git push
