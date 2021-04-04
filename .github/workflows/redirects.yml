@@ -1,0 +1,36 @@
+name: Redirects Deployment
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [ 'redirect' ]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch redirect files
+        run: |
+          mkdir nginx
+          curl https://intercept.typo3.com/redirect/dynamic --output nginx/nginx_redirects_dynamic.conf
+          curl https://intercept.typo3.com/redirect/static --output nginx/redirects.conf
+
+      - name: SCP files to production system
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DEPLOY_DOCS_HOST }}
+          username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          source: "nginx"
+          rm: true
+          strip_components: 0
+          tar_tmp_path: ${{ secrets.TMP_TARGET_PATH }}
+          target: ${{ secrets.REDIRECTS_TARGET_PATH }}/github-${{ github.run_id }}
+
+
+      - name: Apply redirects
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_DOCS_HOST }}
+          username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: ${{ secrets.REDIRECTS_SCRIPT_PATH }} github-${{ github.run_id }}
