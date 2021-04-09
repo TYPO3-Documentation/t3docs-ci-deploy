@@ -57,10 +57,11 @@ jobs:
           username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
           key: ${{ secrets.DEPLOY_KEY }}
           source: "result/"
-          rm: true
+          # temporary, to make sure everything works out
+          rm: false
           strip_components: 1
           tar_tmp_path: ${{ secrets.TMP_TARGET_PATH }}
-          target: ${{ secrets.TMP_TARGET_PATH }}/${{ github.event.client_payload.type_short }}/${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}/${{ github.event.client_payload.target_branch_directory }}
+          target: ${{ secrets.TARGET_PATH }}/${{ github.event.client_payload.type_short }}/${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}/${{ github.event.client_payload.target_branch_directory }}
 
       - name: Notify on failure
         if: ${{ failure() }}

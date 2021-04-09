@@ -74,6 +74,8 @@ jobs:
 
       - name: Update repository
         working-directory: ./viewhelpers
+        # fails if there are no changes
+        continue-on-error: true
         run: |
           rm -rf Documentation/typo3 Documentation/typo3fluid
           cp -r ../documentation/* Documentation/
