@@ -30,7 +30,7 @@ jobs:
       - name: Checkout Core ${{ matrix.core }}
         uses: actions/checkout@v2
         with:
-          repository: 'TYPO3/TYPO3.CMS'
+          repository: 'typo3/typo3'
           path: core
           ref: ${{ matrix.core }}
 
