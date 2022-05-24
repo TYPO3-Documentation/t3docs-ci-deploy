@@ -81,11 +81,13 @@ jobs:
 
       - name: Update repository
         working-directory: ./viewhelpers
-        # fails if there are no changes
+        # - fails if there are no changes
+        # - keep original Documentation/Index.rst
         continue-on-error: true
         run: |
           rm -rf Documentation/typo3 Documentation/typo3fluid
           cp -r ../documentation/* Documentation/
+          git reset --hard Documentation/Index.rst
           git config user.name "TYPO3 Documentation Team"
           git config user.email "documentation-automation@typo3.com"
           git add .
