@@ -15,10 +15,17 @@ jobs:
     env:
       TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
     steps:
-      - name: Setup PHP
+      - name: Setup PHP 7.4
+        if: matrix.core == '10.4' || matrix.core == '11.5'
         uses: shivammathur/setup-php@v2
         with:
           php-version: '7.4'
+
+      - name: Setup PHP 8.1
+        if: matrix.core == 'main'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
 
       - name: Checkout Fluid Documentation Generator
         uses: actions/checkout@v2
