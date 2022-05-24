@@ -80,7 +80,7 @@ jobs:
         run: |
           rm -rf Documentation/typo3 Documentation/typo3fluid
           cp -r ../documentation/* Documentation/
-          git reset --hard Documentation/Index.rst
+          git checkout HEAD -- Documentation/Index.rst
           git config user.name "TYPO3 Documentation Team"
           git config user.email "documentation-automation@typo3.com"
           git add .
