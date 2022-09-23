@@ -18,7 +18,7 @@ jobs:
           data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
 
       - name: Render Repository
-        uses: TYPO3-Documentation/gh-render-action@0.0.7
+        uses: TYPO3-Documentation/gh-render-action@0.0.9
         id: rendering
         with:
           repository_url: ${{ github.event.client_payload.repository_url }}
