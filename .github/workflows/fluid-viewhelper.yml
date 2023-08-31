@@ -10,16 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        core: ['main', '12.4', '11.5', '10.4']
+        core: ['main', '12.4', '11.5']
       fail-fast: false
     env:
       TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
     steps:
-      - name: Setup PHP 7.4
-        if: matrix.core == '10.4' || matrix.core == '11.5'
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '7.4'
 
       - name: Setup PHP 8.1
         if: matrix.core == 'main'
