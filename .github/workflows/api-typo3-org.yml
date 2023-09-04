@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        core: ['main', '11.5', '10.4']
+        core: ['main', '12.4', '11.5']
     env:
       TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
     steps:
