@@ -25,11 +25,19 @@ jobs:
           source_branch: ${{ github.event.client_payload.source_branch }}
           target_branch_directory: ${{ github.event.client_payload.target_branch_directory }}
 
+      - name: Archive render result
+        run: |
+          pushd ${{ steps.rendering.outputs.renderedPath }}
+          zip rendered-docs.zip . -r
+          popd
+          mv ${{ steps.rendering.outputs.renderedPath }}/rendered-docs.zip .
+
       - name: Publish archive with result
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         with:
           name: result
-          path: ${{ steps.rendering.outputs.renderedPath }}
+          path: rendered-docs.zip
+          if-no-files-found: error
 
       - name: Notify on failure
         if: ${{ failure() }}
@@ -45,10 +53,12 @@ jobs:
     needs: render
     if: ${{ github.event.client_payload.type_short != '' && github.event.client_payload.vendor != '' && github.event.client_payload.name != '' && github.event.client_payload.target_branch_directory != ''}}
     steps:
-      - uses: actions/download-artifact@v1
+      - uses: actions/download-artifact@v3
         with:
           name: result
-          path: result
+
+      - name: Extract render result
+        run: unzip rendered-docs.zip -d result
 
       - name: Upload Documentation
         uses: appleboy/scp-action@master
