@@ -16,11 +16,11 @@ jobs:
       TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
     steps:
 
-      - name: Setup PHP 8.1
+      - name: Setup PHP 8.2
         if: matrix.core == 'main'
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.2'
 
       - name: Checkout Fluid Documentation Generator
         uses: actions/checkout@v2
