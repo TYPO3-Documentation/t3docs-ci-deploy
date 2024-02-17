@@ -62,9 +62,6 @@ jobs:
           ./bin/generate-fluid-documentation
           mkdir -p ../documentation
           cp -r public/* ../documentation/
-          find ../documentation -type f -name '*.xsd' -delete
-          find ../documentation -type f -name '*.json' -delete
-          find ../documentation -type f -name '*.html' -delete
 
       - name: "Checkout ViewHelper Docs: ${{ matrix.core }}"
         uses: actions/checkout@v2
