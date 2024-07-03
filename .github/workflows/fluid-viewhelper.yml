@@ -21,13 +21,6 @@ jobs:
         with:
           php-version: '8.2'
 
-      - name: Checkout Fluid Documentation Generator
-        uses: actions/checkout@v2
-        with:
-          repository: 'TYPO3-Documentation/fluid-documentation-generator'
-          fetch-depth: 0
-          path: generator
-
       - name: Checkout Core ${{ matrix.core }}
         uses: actions/checkout@v2
         with:
@@ -35,32 +28,13 @@ jobs:
           path: core
           ref: ${{ matrix.core }}
 
-      - name: Install Schema Generator
+      - name: Create RST documentation
         working-directory: ./core
-        run: |
-          composer require -o -n --no-progress typo3/fluid-schema-generator "^2.1"
-
-      - name: Generate Schemata
-        working-directory: ./core
-        run: |
-          mkdir -p ../schemas/typo3fluid/fluid/latest
-          ./bin/generateschema TYPO3Fluid\\\Fluid > ../schemas/typo3fluid/fluid/latest/schema.xsd
-          mkdir -p ../schemas/typo3/core/latest
-          ./bin/generateschema TYPO3\\\CMS\\\Core > ../schemas/typo3/core/latest/schema.xsd
-          mkdir -p ../schemas/typo3/fluid/latest
-          ./bin/generateschema TYPO3\\\CMS\\\Fluid > ../schemas/typo3/fluid/latest/schema.xsd
-          mkdir -p ../schemas/typo3/backend/latest
-          ./bin/generateschema TYPO3\\\CMS\\\Backend > ../schemas/typo3/backend/latest/schema.xsd
-
-
-      - name: Convert to Rst
-        working-directory: ./generator
         run: |
           composer install --no-dev -n -o --no-progress
-          cp -r ../schemas/* schemas/
-          ./bin/generate-fluid-documentation
-          mkdir -p ../documentation
-          cp -r public/* ../documentation/
+          composer req t3docs/fluid-documentation-generator
+          vendor/bin/fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/fluidStandalone/viewhelpers_fluid.json
+          cp -r fluidDocumentationOutput ../documentation
 
       - name: "Checkout ViewHelper Docs: ${{ matrix.core }}"
         uses: actions/checkout@v2
@@ -76,8 +50,7 @@ jobs:
         # - keep original Documentation/Index.rst
         continue-on-error: true
         run: |
-          rm -rf Documentation/typo3 Documentation/typo3fluid
-          cp -r ../documentation/* Documentation/
+          cp -rf ../documentation/* Documentation/
           git checkout HEAD -- Documentation/Index.rst
           git config user.name "TYPO3 Documentation Team"
           git config user.email "documentation-automation@typo3.com"
