@@ -32,8 +32,8 @@ jobs:
         working-directory: ./core
         run: |
           composer install --no-dev -n -o --no-progress
-          composer req t3docs/fluid-documentation-generator
-          vendor/bin/fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/typo3/*
+          composer req --ignore-platform-reqs=php --update-no-dev t3docs/fluid-documentation-generator
+          bin/fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/typo3/*
           cp -r fluidDocumentationOutput ../documentation
 
       - name: "Checkout ViewHelper Docs: ${{ matrix.core }}"
