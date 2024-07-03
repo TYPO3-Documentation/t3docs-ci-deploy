@@ -32,7 +32,7 @@ jobs:
         working-directory: ./core
         run: |
           composer install --no-dev -n -o --no-progress
-          composer req --ignore-platform-req=php --update-no-dev t3docs/fluid-documentation-generator
+          composer req --ignore-platform-req=php --update-no-dev typo3fluid/fluid:"^2.12" t3docs/fluid-documentation-generator:"^4.0"
           bin/fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/typo3/*
           cp -r fluidDocumentationOutput ../documentation
 
