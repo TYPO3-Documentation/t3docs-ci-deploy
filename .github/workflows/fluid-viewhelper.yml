@@ -33,7 +33,7 @@ jobs:
         run: |
           composer install --no-dev -n -o --no-progress
           composer req t3docs/fluid-documentation-generator
-          vendor/bin/fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/fluidStandalone/viewhelpers_fluid.json
+          vendor/bin/fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/typo3/*
           cp -r fluidDocumentationOutput ../documentation
 
       - name: "Checkout ViewHelper Docs: ${{ matrix.core }}"
