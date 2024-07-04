@@ -21,20 +21,12 @@ jobs:
         with:
           php-version: '8.2'
 
-      - name: Checkout Core ${{ matrix.core }}
-        uses: actions/checkout@v2
-        with:
-          repository: 'typo3/typo3'
-          path: core
-          ref: ${{ matrix.core }}
-
-      - name: Create RST documentation
-        working-directory: ./core
+      - name: Create RST documentation for Core ${{ matrix.core }}
+        working-directory: ./Build/fluid-viewhelpers/${{ matrix.core }}
         run: |
           composer install --no-dev -n -o --no-progress
-          composer req --ignore-platform-req=php --update-no-dev t3docs/fluid-documentation-generator
-          bin/fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/typo3/*
-          cp -r fluidDocumentationOutput ../documentation
+          composer generate-documentation
+          cp -r fluidDocumentationOutput ../../../documentation
 
       - name: "Checkout ViewHelper Docs: ${{ matrix.core }}"
         uses: actions/checkout@v2
