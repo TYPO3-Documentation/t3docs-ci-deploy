@@ -22,7 +22,7 @@ jobs:
           php-version: '8.2'
 
       - name: Create RST documentation for Core ${{ matrix.core }}
-        working-directory: ./Buld/fluid-viewhelpers/${{ matrix.core }}
+        working-directory: ./Build/fluid-viewhelpers/${{ matrix.core }}
         run: |
           composer install --no-dev -n -o --no-progress
           composer generate-documentation
