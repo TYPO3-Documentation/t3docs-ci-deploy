@@ -20,6 +20,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+      
+      - name: Checkout
+        uses: actions/checkout@v2
 
       - name: Create RST documentation for Core ${{ matrix.core }}
         working-directory: ./Build/fluid-viewhelpers/${{ matrix.core }}
