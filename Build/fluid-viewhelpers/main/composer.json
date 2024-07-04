@@ -1,0 +1,21 @@
+{
+    "name": "t3docs/viewhelper-setup-typo3-main",
+    "description": "Slim TYPO3 setup to generate ViewHelper documentation for TYPO3 main",
+    "require": {
+        "typo3/cms-backend": "dev-main",
+        "typo3/cms-core": "dev-main",
+        "typo3/cms-fluid": "dev-main",
+        "typo3/cms-form": "dev-main",
+        "t3docs/fluid-documentation-generator": "^4.1"
+    },
+    "scripts": {
+        "generate-documentation": "fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/typo3/*"
+    },
+    "config": {
+        "allow-plugins": {
+            "typo3/class-alias-loader": true,
+            "typo3/cms-composer-installers": true
+        }
+    },
+    "minimum-stability": "dev"
+}
