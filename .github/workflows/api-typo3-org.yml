@@ -15,14 +15,14 @@ jobs:
       TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
     steps:
       - name: Checkout Doxygen API
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: 'TYPO3GmbH/doxygenapi'
           fetch-depth: 0
           path: api
 
       - name: Checkout Core ${{ matrix.core }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: 'typo3/typo3'
           path: core
