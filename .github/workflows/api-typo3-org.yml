@@ -35,7 +35,7 @@ jobs:
         run: |
           mkdir -p output/${{ matrix.core }}
           docker run --rm \
-            -v $(pwd)/data:/data \
+            -v $(pwd):/data \
             phpdoc/phpdoc:3 --target output/${{ matrix.core }}
 
       - name: SCP files to production system
