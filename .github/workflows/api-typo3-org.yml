@@ -17,16 +17,19 @@ jobs:
       - name: Checkout Doxygen API
         uses: actions/checkout@v4
         with:
-          repository: 'TYPO3GmbH/doxygenapi'
+          repository: 'TYPO3-Documentation/t3docs-typo3-api'
           fetch-depth: 0
-          path: api
+          path: .phpdoc
 
       - name: Checkout Core ${{ matrix.core }}
         uses: actions/checkout@v4
         with:
           repository: 'typo3/typo3'
-          path: core
+          path: .Build/TYPO3
           ref: ${{ matrix.core }}
+
+      - name: copy config
+        run: cp .phpdoc/phpdoc.dist.xml phpdoc.xml
 
       - name: Generate API Docs
         run: |
@@ -34,10 +37,8 @@ jobs:
           echo -e "\nPROJECT_NUMBER         = ${{ matrix.core }}" >> api/Doxyfile
           mkdir -p output/${{ matrix.core }}
           docker run --rm --user=$(id -u):$(id -g) \
-            -v $(pwd)/core:/mnt/doxygen:ro \
-            -v $(pwd)/api:/mnt/doxyconf \
-            -v $(pwd)/output/${{ matrix.core }}:/mnt/output \
-            ghcr.io/typo3gmbh/doxygenapi /mnt/doxyconf/Doxyfile
+            -v $(pwd)/data:/data:ro \
+            phpdoc/phpdoc:3 --target output/${{ matrix.core }}
 
       - name: SCP files to production system
         uses: appleboy/scp-action@master
@@ -45,8 +46,8 @@ jobs:
           host: ${{ secrets.DEPLOY_DOCS_API_HOST }}
           username: ${{ secrets.DEPLOY_DOCS_API_USERNAME }}
           key: ${{ secrets.DEPLOY_DOCS_API_KEY }}
-          source: "output/${{ matrix.core }}/html/"
+          source: "output/${{ matrix.core }}"
           rm: false
-          strip_components: 3
+          strip_components: 2
           tar_tmp_path: ${{ secrets.API_TMP_TARGET_PATH }}
           target: ${{ env.TARGET_PATH }}
