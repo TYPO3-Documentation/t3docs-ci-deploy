@@ -34,7 +34,7 @@ jobs:
       - name: Generate API Docs
         run: |
           mkdir -p output/${{ matrix.core }}
-          docker run --rm --user=$(id -u):$(id -g) \
+          docker run --rm \
             -v $(pwd)/data:/data \
             phpdoc/phpdoc:3 --target output/${{ matrix.core }}
 
