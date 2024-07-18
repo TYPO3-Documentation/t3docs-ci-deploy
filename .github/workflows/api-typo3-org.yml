@@ -33,8 +33,6 @@ jobs:
 
       - name: Generate API Docs
         run: |
-          echo -e "\nPROJECT_NAME           = TYPO3 CMS" >> api/Doxyfile
-          echo -e "\nPROJECT_NUMBER         = ${{ matrix.core }}" >> api/Doxyfile
           mkdir -p output/${{ matrix.core }}
           docker run --rm --user=$(id -u):$(id -g) \
             -v $(pwd)/data:/data:ro \
