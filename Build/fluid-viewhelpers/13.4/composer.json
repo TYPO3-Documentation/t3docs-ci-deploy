@@ -1,0 +1,20 @@
+{
+    "name": "t3docs/viewhelper-setup-typo3-134",
+    "description": "Slim TYPO3 setup to generate ViewHelper documentation for TYPO3 13.4",
+    "require": {
+        "typo3/cms-backend": "^13.4",
+        "typo3/cms-core": "^13.4",
+        "typo3/cms-fluid": "^13.4",
+        "typo3/cms-form": "^13.4",
+        "t3docs/fluid-documentation-generator": "^4.1"
+    },
+    "scripts": {
+        "generate-documentation": "fluidDocumentation generate vendor/t3docs/fluid-documentation-generator/config/typo3/*"
+    },
+    "config": {
+        "allow-plugins": {
+            "typo3/class-alias-loader": true,
+            "typo3/cms-composer-installers": true
+        }
+    }
+}
