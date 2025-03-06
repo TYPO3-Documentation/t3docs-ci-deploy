@@ -41,14 +41,12 @@ jobs:
 
       - name: Update repository
         working-directory: ./viewhelpers
-        # - fails if there are no changes
-        # - keep original Documentation/Index.rst
         continue-on-error: true
         run: |
-          cp -rf ../documentation/* Documentation/
+          rsync -av --ignore-existing ../documentation/ Documentation/
           git checkout HEAD -- Documentation/Index.rst
           git config user.name "TYPO3 Documentation Team"
           git config user.email "documentation-automation@typo3.com"
           git add .
-          git commit -m '[BOT][TASK] Automatic Update of ViewHelper reference'
+          git commit -m '[BOT][TASK] Only add new ViewHelper documentation files' || echo "No changes to commit"
           git push
