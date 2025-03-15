@@ -17,6 +17,7 @@ jobs:
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
           data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
 
+      # See https://github.com/TYPO3-Documentation/gh-render-action/blob/main/action.yml
       - name: Render Repository
         uses: TYPO3-Documentation/gh-render-action@main
         id: rendering
