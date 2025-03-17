@@ -17,6 +17,20 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           script: rm -Rf ${{ secrets.TARGET_PATH }}/${{ github.event.client_payload.type_short }}/${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}/${{ github.event.client_payload.target_branch_directory }}
 
+      - name: Deleting search data
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_DOCS_HOST }}
+          username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          command_timeout: 1m
+          script: |
+            export APP_ENV=prod
+            export APP_SECRET=${{ secrets.DOC_SEARCH_APP_SECRET }}
+            export DOCS_ROOT_PATH=${{ secrets.TARGET_PATH }}
+            cd ${{ secrets.DOC_SEARCH_PATH }}
+            ./bin/console docsearch:index:delete --manual-type=${{ github.event.client_payload.type_short }} --manual-package=${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }} --manual-version=${{ github.event.client_payload.target_branch_directory }}
+
       - name: Notify on failure
         if: ${{ failure() }}
         uses: distributhor/workflow-webhook@v1
