@@ -43,7 +43,8 @@ jobs:
         working-directory: ./viewhelpers
         continue-on-error: true
         run: |
-          rsync -av --ignore-existing ../documentation/ Documentation/
+          rsync -av --exclude='*.json' --ignore-existing ../documentation/ Documentation/
+          rsync -av --include='*.json' --exclude='*' ../documentation/ Documentation/
           git checkout HEAD -- Documentation/Index.rst
           git config user.name "TYPO3 Documentation Team"
           git config user.email "documentation-automation@typo3.com"
