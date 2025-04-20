@@ -81,7 +81,7 @@ jobs:
               echo '<html>' >> "$dir/Index.html"
               echo '  <head>' >> "$dir/Index.html"
               echo '    <meta http-equiv="refresh" content="0; url=../Index.html">' >> "$dir/Index.html"
-              echo '  </head>' >> "Index/index.html"
+              echo '  </head>' >> "Index/Index.html"
               echo '  <body>' >> "$dir/Index.html"
               echo '    <p>If you are not redirected, <a href="../Index.html">click here</a>.</p>' >> "$dir/Index.html"
               echo '  </body>' >> "$dir/Index.html"
