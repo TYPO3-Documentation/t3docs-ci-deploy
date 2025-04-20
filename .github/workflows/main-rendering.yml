@@ -61,6 +61,17 @@ jobs:
       - name: Extract render result
         run: unzip rendered-docs.zip -d result
 
+      - name: Fallback to Readme.html if Index.html is missing
+        run: |
+          if [ ! -f result/Index.html ]; then
+            for f in result/index.html result/Readme.html result/README.html; do
+              if [ -f "$f" ]; then
+                mv "$f" result/Index.html
+                break
+              fi
+            done
+          fi
+
       - name: Upload Documentation
         uses: appleboy/scp-action@master
         with:
