@@ -71,6 +71,24 @@ jobs:
             fi
           fi
 
+      - name: Insert redirecting Index.html in folders missing one
+        shell: bash
+        run: |
+          find result -type d | while read dir; do
+            if [ ! -f "$dir/Index.html" ]; then
+              echo "Creating Index.html in $dir"
+              echo '<!DOCTYPE html>' > "$dir/Index.html"
+              echo '<html>' >> "$dir/Index.html"
+              echo '  <head>' >> "$dir/Index.html"
+              echo '    <meta http-equiv="refresh" content="0; url=../Index.html">' >> "$dir/Index.html"
+              echo '  </head>' >> "Index/index.html"
+              echo '  <body>' >> "$dir/Index.html"
+              echo '    <p>If you are not redirected, <a href="../Index.html">click here</a>.</p>' >> "$dir/Index.html"
+              echo '  </body>' >> "$dir/Index.html"
+              echo '</html>' >> "$dir/Index.html"
+            fi
+          done
+
       - name: Upload Documentation
         uses: appleboy/scp-action@master
         with:
