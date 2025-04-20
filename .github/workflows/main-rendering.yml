@@ -61,23 +61,24 @@ jobs:
       - name: Extract render result
         run: unzip rendered-docs.zip -d result
 
-      - name: Fallback to README-like file if Index.html is missing (with directory listing)
+      - name: Fallback to README-like file if Index.html is missing (recursive, correct path)
         run: |
           echo "Looking for fallback HTML file..."
           echo "Contents of result/ directory:"
           ls -R result || echo "result/ directory not found"
-          
-          if [ ! -f result/Index.html ]; then
-            echo "Index.html not found."
-            fallback=$(find result -type f -iname "readme.html" | head -n 1)
-            if [ -n "$fallback" ]; then
+
+          fallback=$(find result -type f -iname "readme.html" | head -n 1)
+          if [ -n "$fallback" ]; then
+            fallback_dir=$(dirname "$fallback")
+            if [ ! -f "$fallback_dir/Index.html" ]; then
+              echo "Index.html not found in $fallback_dir"
               echo "Found fallback: $fallback"
-              cp "$fallback" result/Index.html
+              cp "$fallback" "$fallback_dir/Index.html"
             else
-              echo "No fallback README.html found."
+              echo "Index.html already exists in $fallback_dir"
             fi
           else
-            echo "Index.html already exists."
+            echo "No fallback README.html found."
           fi
 
       - name: Upload Documentation
