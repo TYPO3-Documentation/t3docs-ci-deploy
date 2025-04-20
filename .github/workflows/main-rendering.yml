@@ -61,15 +61,22 @@ jobs:
       - name: Extract render result
         run: unzip rendered-docs.zip -d result
 
-      - name: Fallback to Readme.html if Index.html is missing
+      - name: Fallback to README-like files if Index.html is missing
         run: |
+          echo "Looking for fallback HTML file..."
           if [ ! -f result/Index.html ]; then
-            for f in result/index.html result/Readme.html result/README.html; do
-              if [ -f "$f" ]; then
+            echo "Index.html not found."
+            for f in result/*; do
+              fname=$(basename "$f")
+              lname=$(echo "$fname" | tr '[:upper:]' '[:lower:]')
+              if [[ "$lname" == "readme.html" ]]; then
+                echo "Found fallback: $f"
                 mv "$f" result/Index.html
                 break
               fi
             done
+          else
+            echo "Index.html already exists."
           fi
 
       - name: Upload Documentation
