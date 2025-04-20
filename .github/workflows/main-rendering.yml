@@ -74,7 +74,7 @@ jobs:
       - name: Insert redirecting Index.html in folders missing one
         shell: bash
         run: |
-          find result -type d | while read dir; do
+          find result \( -path "*/_sources" -o -path "*/_sources/*" -o -path "*/_resources" -o -path "*/_resources/*" \) -prune -o -type d -print | while read dir; do
             if [ ! -f "$dir/Index.html" ]; then
               echo "Creating Index.html in $dir"
               echo '<!DOCTYPE html>' > "$dir/Index.html"
@@ -88,6 +88,7 @@ jobs:
               echo '</html>' >> "$dir/Index.html"
             fi
           done
+
 
       - name: Upload Documentation
         uses: appleboy/scp-action@master
