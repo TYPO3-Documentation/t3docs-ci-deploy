@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Notify on start
         if: ${{ always() }}
-        uses: distributhor/workflow-webhook@v1
+        uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369
         env:
           webhook_url: ${{ secrets.WEBHOOK_START_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
@@ -34,7 +34,7 @@ jobs:
           mv ${{ steps.rendering.outputs.renderedPath }}/rendered-docs.zip .
 
       - name: Publish archive with result
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: result
           path: rendered-docs.zip
@@ -42,7 +42,7 @@ jobs:
 
       - name: Notify on failure
         if: ${{ failure() }}
-        uses: distributhor/workflow-webhook@v1
+        uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
@@ -54,7 +54,7 @@ jobs:
     needs: render
     if: ${{ github.event.client_payload.type_short != '' && github.event.client_payload.vendor != '' && github.event.client_payload.name != '' && github.event.client_payload.target_branch_directory != ''}}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
         with:
           name: result
 
@@ -126,7 +126,7 @@ jobs:
 
       - name: Notify on failure
         if: ${{ failure() }}
-        uses: distributhor/workflow-webhook@v1
+        uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
@@ -134,7 +134,7 @@ jobs:
 
       - name: Notify on success
         if: ${{ success() }}
-        uses: distributhor/workflow-webhook@v1
+        uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}

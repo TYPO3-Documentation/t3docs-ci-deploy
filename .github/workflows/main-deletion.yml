@@ -33,7 +33,7 @@ jobs:
 
       - name: Notify on failure
         if: ${{ failure() }}
-        uses: distributhor/workflow-webhook@v1
+        uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369
         env:
           webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
@@ -41,7 +41,7 @@ jobs:
 
       - name: Notify on success
         if: ${{ success() }}
-        uses: distributhor/workflow-webhook@v1
+        uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369
         env:
           webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
