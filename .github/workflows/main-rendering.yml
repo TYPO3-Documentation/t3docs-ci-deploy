@@ -91,7 +91,7 @@ jobs:
 
 
       - name: Upload Documentation
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
         with:
           host: ${{ secrets.DEPLOY_DOCS_HOST }}
           username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
@@ -103,7 +103,7 @@ jobs:
           target: ${{ secrets.TARGET_PATH }}/${{ github.event.client_payload.type_short }}/${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}/${{ github.event.client_payload.target_branch_directory }}
 
       - name: Update Extension list
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
         with:
           host: ${{ secrets.DEPLOY_DOCS_HOST }}
           username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
@@ -111,7 +111,7 @@ jobs:
           script: curl https://intercept.typo3.com/assets/docs/extensions.js --output ${{ secrets.TARGET_PATH }}/Home/extensions.js
 
       - name: Update search data
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
         with:
           host: ${{ secrets.DEPLOY_DOCS_HOST }}
           username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
