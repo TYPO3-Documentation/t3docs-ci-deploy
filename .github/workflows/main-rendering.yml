@@ -19,7 +19,7 @@ jobs:
 
       # See https://github.com/TYPO3-Documentation/gh-render-action/blob/main/action.yml
       - name: Render Repository
-        uses: TYPO3-Documentation/gh-render-action@96c3fc221128c3b474ff27f1093c05e3ddb9a420
+        uses: TYPO3-Documentation/gh-render-action@8469606ccb95c20d049f5d3222d74acf5523edbd
         id: rendering
         with:
           repository_url: ${{ github.event.client_payload.repository_url }}
