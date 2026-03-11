@@ -1,0 +1,89 @@
+name: PHP Quality
+on:
+  workflow_call:
+    inputs:
+      php-version:
+        description: 'PHP version for quality checks'
+        type: string
+        default: '8.2'
+      run-cs-fixer:
+        description: 'Run PHP CS Fixer'
+        type: boolean
+        default: true
+      cs-fixer-command:
+        description: 'CS Fixer command'
+        type: string
+        default: 'make test-cs-fixer'
+      run-phpstan:
+        description: 'Run PHPStan'
+        type: boolean
+        default: true
+      phpstan-command:
+        description: 'PHPStan command'
+        type: string
+        default: 'make test-phpstan'
+      run-xml-lint:
+        description: 'Run XML lint'
+        type: boolean
+        default: false
+      xml-lint-command:
+        description: 'XML lint command'
+        type: string
+        default: 'make test-xml-lint'
+      php-extensions:
+        description: 'PHP extensions to install'
+        type: string
+        default: ''
+      run-environment:
+        description: 'RUN_ENVIRONMENT value'
+        type: string
+        default: 'local'
+
+jobs:
+  quality:
+    permissions:
+      contents: read
+    name: Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # 2.36.0
+        with:
+          coverage: none
+          php-version: "${{ inputs.php-version }}"
+          extensions: "${{ inputs.php-extensions }}"
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: php-${{ inputs.php-version }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: php-${{ inputs.php-version }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: PHP CS Fixer
+        if: inputs.run-cs-fixer
+        run: ${{ inputs.cs-fixer-command }}
+        env:
+          RUN_ENVIRONMENT: ${{ inputs.run-environment }}
+
+      - name: PHPStan
+        if: inputs.run-phpstan
+        run: ${{ inputs.phpstan-command }}
+        env:
+          RUN_ENVIRONMENT: ${{ inputs.run-environment }}
+
+      - name: XML Lint
+        if: inputs.run-xml-lint
+        run: ${{ inputs.xml-lint-command }}
+        env:
+          RUN_ENVIRONMENT: ${{ inputs.run-environment }}
