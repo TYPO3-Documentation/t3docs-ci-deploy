@@ -1,0 +1,77 @@
+name: PHP Tests
+on:
+  workflow_call:
+    inputs:
+      php-versions:
+        description: 'JSON array of PHP versions'
+        type: string
+        default: '["8.2", "8.3", "8.4", "8.5"]'
+      dependency-versions:
+        description: 'Composer dependency versions (locked/highest/lowest)'
+        type: string
+        default: 'locked'
+      test-unit-command:
+        description: 'Unit test command'
+        type: string
+        default: 'make test-unit'
+      test-integration-command:
+        description: 'Integration test command (empty to skip)'
+        type: string
+        default: ''
+      php-extensions:
+        description: 'PHP extensions to install'
+        type: string
+        default: ''
+      run-environment:
+        description: 'RUN_ENVIRONMENT value'
+        type: string
+        default: 'local'
+
+jobs:
+  tests:
+    permissions:
+      contents: read
+    name: "Tests (PHP ${{ matrix.php }})"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ${{ fromJson(inputs.php-versions) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@44454db4f0199b8b9685a5d763dc37cbf79108e1 # 2.36.0
+        with:
+          coverage: none
+          php-version: "${{ matrix.php }}"
+          extensions: "${{ inputs.php-extensions }}"
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: php-${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: php-${{ matrix.php }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+        env:
+          COMPOSER_NO_DEV: "0"
+
+      - name: Run unit tests
+        if: inputs.test-unit-command != ''
+        run: ${{ inputs.test-unit-command }}
+        env:
+          RUN_ENVIRONMENT: ${{ inputs.run-environment }}
+
+      - name: Run integration tests
+        if: inputs.test-integration-command != ''
+        run: ${{ inputs.test-integration-command }}
+        env:
+          RUN_ENVIRONMENT: ${{ inputs.run-environment }}

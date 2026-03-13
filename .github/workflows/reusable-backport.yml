@@ -1,0 +1,26 @@
+name: Backport
+on:
+  workflow_call:
+    inputs:
+      label-pattern:
+        description: 'Label pattern for backport branches (e.g. "backport *")'
+        type: string
+        default: 'backport *'
+
+jobs:
+  backport:
+    permissions:
+      contents: write
+      pull-requests: write
+    name: Backport
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.merged == true &&
+      contains(toJson(github.event.pull_request.labels), 'backport')
+    steps:
+      - name: Backport
+        uses: korthout/backport-action@4aaf0e03a94ff0a619c9a511b61aeb42adea5b02 # v4.2.0
+        with:
+          label_pattern: "${{ inputs.label-pattern }}"
+          merge_method: "none"
