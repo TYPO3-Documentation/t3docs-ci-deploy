@@ -61,6 +61,9 @@ jobs:
       - name: Extract render result
         run: unzip rendered-docs.zip -d result
 
+      - name: Adjust permissions
+        run: chmod -R go+rX result
+
       - name: Fallback to README-like file if Index.html is missing
         run: |
           fallback=$(find result -type f -iname "readme.html" | head -n 1)
