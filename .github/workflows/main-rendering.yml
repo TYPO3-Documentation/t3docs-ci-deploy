@@ -19,48 +19,61 @@ jobs:
           VENDOR: ${{ github.event.client_payload.vendor }}
           NAME: ${{ github.event.client_payload.name }}
         run: |
-          # The deploy job builds remote paths from these. Fail here rather than
-          # after a full render. A leading dash would additionally be read as an
-          # option by the console command in the search step.
-          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
+          # A payload field can contain newlines, so no message below echoes a
+          # value: a second line starting with "::" would be read as a workflow
+          # command. The field name is enough to debug a rejected dispatch.
+          #
+          # The deploy job builds remote paths from these three, so fail here
+          # rather than after a full render - but stay as tolerant as the deploy
+          # job's own condition, which lets an empty field skip the deployment
+          # instead of failing it. A leading dash would be read as an option by
+          # the console command in the search step.
+          for name in TYPE_SHORT VENDOR NAME; do
             value="${!name}"
             case "$value" in
-              *[!A-Za-z0-9._-]* | *..* | .* | -* | '')
-                echo "::error::client_payload field $name is not a plain path segment: $value"
+              '') ;;
+              *[!A-Za-z0-9._-]* | *..* | .* | -*)
+                echo "::error::client_payload field $name is not a plain path segment"
                 exit 1
                 ;;
             esac
           done
+          case "$BRANCH_DIRECTORY" in
+            *[!A-Za-z0-9._-]* | *..* | .* | -* | '')
+              echo "::error::client_payload field target_branch_directory is not a plain path segment"
+              exit 1
+              ;;
+          esac
           # gh-render-action interpolates these into "git clone", so they must not
           # be able to carry shell metacharacters or extra git options.
           host_and_path="${REPOSITORY_URL#https://}"
           case "$REPOSITORY_URL" in
             https://*) ;;
             *)
-              echo "::error::repository_url is not an https URL: $REPOSITORY_URL"
+              echo "::error::client_payload field repository_url is not an https URL"
               exit 1
               ;;
           esac
           case "$host_and_path" in
             /* | */)
-              echo "::error::repository_url has no host or no path: $REPOSITORY_URL"
+              echo "::error::client_payload field repository_url has no host or no path"
               exit 1
               ;;
             */*) ;;
             *)
-              echo "::error::repository_url has no path: $REPOSITORY_URL"
+              echo "::error::client_payload field repository_url has no path"
               exit 1
               ;;
           esac
           case "$REPOSITORY_URL" in
             *[!A-Za-z0-9:/._~-]*)
-              echo "::error::repository_url contains unexpected characters: $REPOSITORY_URL"
+              echo "::error::client_payload field repository_url contains unexpected characters"
               exit 1
               ;;
           esac
           case "$SOURCE_BRANCH" in
             *[!A-Za-z0-9._/+@-]* | -* | */ | *..* | '')
-              echo "::error::source_branch is not a plain branch name: $SOURCE_BRANCH"
+              echo "::error::client_payload field source_branch is not a plain branch name"
               exit 1
               ;;
           esac
@@ -71,7 +84,8 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_START_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":false,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: >-
+            {"success":false,"id":${{ toJSON(github.event.client_payload.id || '') }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
 
       # See https://github.com/TYPO3-Documentation/gh-render-action/blob/main/action.yml
       - name: Render Repository
@@ -102,7 +116,8 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":false,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: >-
+            {"success":false,"id":${{ toJSON(github.event.client_payload.id || '') }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
 
   deploy:
     runs-on: ubuntu-latest
@@ -120,12 +135,14 @@ jobs:
         run: |
           # These four become path segments in the remote commands below. A
           # leading dash would additionally be read as an option by the console
-          # command in the search step.
+          # command in the search step. The value is never echoed: it may
+          # contain a newline, and a second line starting with "::" would be
+          # read as a workflow command.
           for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
             value="${!name}"
             case "$value" in
               *[!A-Za-z0-9._-]* | *..* | .* | -* | '')
-                echo "::error::client_payload field $name is not a plain path segment: $value"
+                echo "::error::client_payload field $name is not a plain path segment"
                 exit 1
                 ;;
             esac
@@ -170,6 +187,9 @@ jobs:
           done
 
 
+      # "target" is an action input and cannot be passed through envs like the
+      # ssh steps below, so it depends on the Validate payload step above having
+      # run first in this job. Keep that step first.
       - name: Upload Documentation
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
         with:
@@ -217,7 +237,8 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":false,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: >-
+            {"success":false,"id":${{ toJSON(github.event.client_payload.id || '') }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
 
       - name: Notify on success
         if: ${{ success() }}
@@ -225,4 +246,5 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":true,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: >-
+            {"success":true,"id":${{ toJSON(github.event.client_payload.id || '') }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}

@@ -19,12 +19,14 @@ jobs:
         run: |
           # These four become path segments in the remote commands below. A
           # leading dash would additionally be read as an option by the console
-          # command in the search step.
+          # command in the search step. The value is never echoed: it may
+          # contain a newline, and a second line starting with "::" would be
+          # read as a workflow command.
           for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
             value="${!name}"
             case "$value" in
               *[!A-Za-z0-9._-]* | *..* | .* | -* | '')
-                echo "::error::client_payload field $name is not a plain path segment: $value"
+                echo "::error::client_payload field $name is not a plain path segment"
                 exit 1
                 ;;
             esac
@@ -77,7 +79,8 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":false,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: >-
+            {"success":false,"id":${{ toJSON(github.event.client_payload.id || '') }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
 
       - name: Notify on success
         if: ${{ success() }}
@@ -85,4 +88,5 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":true,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: >-
+            {"success":true,"id":${{ toJSON(github.event.client_payload.id || '') }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
