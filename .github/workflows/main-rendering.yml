@@ -18,29 +18,19 @@ jobs:
           TYPE_SHORT: ${{ github.event.client_payload.type_short }}
           VENDOR: ${{ github.event.client_payload.vendor }}
           NAME: ${{ github.event.client_payload.name }}
-          ID: ${{ github.event.client_payload.id }}
         run: |
           # The deploy job builds remote paths from these. Fail here rather than
-          # after a full render.
+          # after a full render. A leading dash would additionally be read as an
+          # option by the console command in the search step.
           for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
             value="${!name}"
             case "$value" in
-              *[!A-Za-z0-9._-]* | *..* | .* | '')
+              *[!A-Za-z0-9._-]* | *..* | .* | -* | '')
                 echo "::error::client_payload field $name is not a plain path segment: $value"
                 exit 1
                 ;;
             esac
           done
-          # "id" only travels into the notification JSON, where a quote would
-          # break the body. It stays optional, and the notification steps run
-          # even when this step fails - this narrows the field, it does not
-          # gate them.
-          case "$ID" in
-            *[!A-Za-z0-9._-]*)
-              echo "::error::client_payload field id contains unexpected characters: $ID"
-              exit 1
-              ;;
-          esac
           # gh-render-action interpolates these into "git clone", so they must not
           # be able to carry shell metacharacters or extra git options.
           host_and_path="${REPOSITORY_URL#https://}"
@@ -69,14 +59,8 @@ jobs:
               ;;
           esac
           case "$SOURCE_BRANCH" in
-            *[!A-Za-z0-9._/-]* | -* | */ | *..* | '')
+            *[!A-Za-z0-9._/+@-]* | -* | */ | *..* | '')
               echo "::error::source_branch is not a plain branch name: $SOURCE_BRANCH"
-              exit 1
-              ;;
-          esac
-          case "$BRANCH_DIRECTORY" in
-            *[!A-Za-z0-9._-]* | *..* | .* | '')
-              echo "::error::target_branch_directory is not a plain path segment: $BRANCH_DIRECTORY"
               exit 1
               ;;
           esac
@@ -87,7 +71,7 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_START_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: '{"success":false,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
 
       # See https://github.com/TYPO3-Documentation/gh-render-action/blob/main/action.yml
       - name: Render Repository
@@ -118,7 +102,7 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: '{"success":false,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
 
   deploy:
     runs-on: ubuntu-latest
@@ -133,28 +117,19 @@ jobs:
           VENDOR: ${{ github.event.client_payload.vendor }}
           NAME: ${{ github.event.client_payload.name }}
           BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
-          ID: ${{ github.event.client_payload.id }}
         run: |
-          # These four become path segments in the remote commands below.
+          # These four become path segments in the remote commands below. A
+          # leading dash would additionally be read as an option by the console
+          # command in the search step.
           for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
             value="${!name}"
             case "$value" in
-              *[!A-Za-z0-9._-]* | *..* | .* | '')
+              *[!A-Za-z0-9._-]* | *..* | .* | -* | '')
                 echo "::error::client_payload field $name is not a plain path segment: $value"
                 exit 1
                 ;;
             esac
           done
-          # "id" only travels into the notification JSON, where a quote would
-          # break the body. It stays optional, and the notification steps run
-          # even when this step fails - this narrows the field, it does not
-          # gate them.
-          case "$ID" in
-            *[!A-Za-z0-9._-]*)
-              echo "::error::client_payload field id contains unexpected characters: $ID"
-              exit 1
-              ;;
-          esac
 
       - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
         with:
@@ -232,6 +207,7 @@ jobs:
             export APP_ENV=prod
             export APP_SECRET=${{ secrets.DOC_SEARCH_APP_SECRET }}
             export DOCS_ROOT_PATH=${{ secrets.TARGET_PATH }}
+            : "${TYPE_SHORT:?not set}" "${VENDOR:?not set}" "${NAME:?not set}" "${BRANCH_DIRECTORY:?not set}"
             cd ${{ secrets.DOC_SEARCH_PATH }}
             ./bin/console docsearch:import "$TYPE_SHORT/$VENDOR/$NAME/$BRANCH_DIRECTORY"
 
@@ -241,7 +217,7 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: '{"success":false,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
 
       - name: Notify on success
         if: ${{ success() }}
@@ -249,4 +225,4 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":true,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: '{"success":true,"id":${{ toJSON(github.event.client_payload.id) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
