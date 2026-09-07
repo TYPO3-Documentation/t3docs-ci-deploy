@@ -9,6 +9,40 @@ jobs:
     name: Render ${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}
     if: ${{ github.event.client_payload.repository_url != '' && github.event.client_payload.source_branch != '' && github.event.client_payload.target_branch_directory != '' }}
     steps:
+      - name: Validate payload
+        env:
+          REPOSITORY_URL: ${{ github.event.client_payload.repository_url }}
+          SOURCE_BRANCH: ${{ github.event.client_payload.source_branch }}
+          BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
+        run: |
+          # gh-render-action interpolates these into "git clone", so they must not
+          # be able to carry shell metacharacters or extra git options.
+          case "$REPOSITORY_URL" in
+            https://[A-Za-z0-9][A-Za-z0-9.-]*/*[!/]) ;;
+            *)
+              echo "::error::repository_url is not a plain https URL: $REPOSITORY_URL"
+              exit 1
+              ;;
+          esac
+          case "$REPOSITORY_URL" in
+            *[!A-Za-z0-9:/._~-]*)
+              echo "::error::repository_url contains unexpected characters: $REPOSITORY_URL"
+              exit 1
+              ;;
+          esac
+          case "$SOURCE_BRANCH" in
+            *[!A-Za-z0-9._/-]* | -* | */ | *..* | '')
+              echo "::error::source_branch is not a plain branch name: $SOURCE_BRANCH"
+              exit 1
+              ;;
+          esac
+          case "$BRANCH_DIRECTORY" in
+            *[!A-Za-z0-9._-]* | *..* | .* | '')
+              echo "::error::target_branch_directory is not a plain path segment: $BRANCH_DIRECTORY"
+              exit 1
+              ;;
+          esac
+
       - name: Notify on start
         if: ${{ always() }}
         uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369
