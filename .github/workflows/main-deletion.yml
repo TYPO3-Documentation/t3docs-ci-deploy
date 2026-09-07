@@ -67,10 +67,10 @@ jobs:
           envs: TYPE_SHORT,VENDOR,NAME,BRANCH_DIRECTORY
           script: |
             export APP_ENV=prod
-            export APP_SECRET=${{ secrets.DOC_SEARCH_APP_SECRET }}
-            export DOCS_ROOT_PATH=${{ secrets.TARGET_PATH }}
+            export APP_SECRET="${{ secrets.DOC_SEARCH_APP_SECRET }}"
+            export DOCS_ROOT_PATH="${{ secrets.TARGET_PATH }}"
             : "${TYPE_SHORT:?not set}" "${VENDOR:?not set}" "${NAME:?not set}" "${BRANCH_DIRECTORY:?not set}"
-            cd ${{ secrets.DOC_SEARCH_PATH }}
+            cd "${{ secrets.DOC_SEARCH_PATH }}"
             ./bin/console docsearch:index:delete --manual-type="$TYPE_SHORT" --manual-package="$VENDOR/$NAME" --manual-version="$BRANCH_DIRECTORY"
 
       - name: Notify on failure
@@ -80,7 +80,7 @@ jobs:
           webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
           data: >-
-            {"success":false,"id":${{ toJSON(github.event.client_payload.id || '') }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
+            {"success":false,"id":${{ toJSON(format('{0}', github.event.client_payload.id)) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
 
       - name: Notify on success
         if: ${{ success() }}
@@ -89,4 +89,4 @@ jobs:
           webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
           data: >-
-            {"success":true,"id":${{ toJSON(github.event.client_payload.id || '') }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
+            {"success":true,"id":${{ toJSON(format('{0}', github.event.client_payload.id)) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
