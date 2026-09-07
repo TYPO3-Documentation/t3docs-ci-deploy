@@ -20,23 +20,45 @@ jobs:
           NAME: ${{ github.event.client_payload.name }}
           ID: ${{ github.event.client_payload.id }}
         run: |
-          # The deploy job builds remote paths from these, and "id" ends up inside
-          # the webhook JSON body. Fail here rather than after a full render.
-          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY ID; do
+          # The deploy job builds remote paths from these. Fail here rather than
+          # after a full render.
+          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
             value="${!name}"
             case "$value" in
               *[!A-Za-z0-9._-]* | *..* | .* | '')
-                echo "::error::client_payload field $name contains unexpected characters: $value"
+                echo "::error::client_payload field $name is not a plain path segment: $value"
                 exit 1
                 ;;
             esac
           done
+          # "id" only travels into the notification JSON, where a quote would
+          # break the body. It stays optional, and the notification steps run
+          # even when this step fails - this narrows the field, it does not
+          # gate them.
+          case "$ID" in
+            *[!A-Za-z0-9._-]*)
+              echo "::error::client_payload field id contains unexpected characters: $ID"
+              exit 1
+              ;;
+          esac
           # gh-render-action interpolates these into "git clone", so they must not
           # be able to carry shell metacharacters or extra git options.
+          host_and_path="${REPOSITORY_URL#https://}"
           case "$REPOSITORY_URL" in
-            https://[A-Za-z0-9][A-Za-z0-9.-]*/*[!/]) ;;
+            https://*) ;;
             *)
-              echo "::error::repository_url is not a plain https URL: $REPOSITORY_URL"
+              echo "::error::repository_url is not an https URL: $REPOSITORY_URL"
+              exit 1
+              ;;
+          esac
+          case "$host_and_path" in
+            /* | */)
+              echo "::error::repository_url has no host or no path: $REPOSITORY_URL"
+              exit 1
+              ;;
+            */*) ;;
+            *)
+              echo "::error::repository_url has no path: $REPOSITORY_URL"
               exit 1
               ;;
           esac
@@ -113,15 +135,26 @@ jobs:
           BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
           ID: ${{ github.event.client_payload.id }}
         run: |
-          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY ID; do
+          # These four become path segments in the remote commands below.
+          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
             value="${!name}"
             case "$value" in
               *[!A-Za-z0-9._-]* | *..* | .* | '')
-                echo "::error::client_payload field $name contains unexpected characters: $value"
+                echo "::error::client_payload field $name is not a plain path segment: $value"
                 exit 1
                 ;;
             esac
           done
+          # "id" only travels into the notification JSON, where a quote would
+          # break the body. It stays optional, and the notification steps run
+          # even when this step fails - this narrows the field, it does not
+          # gate them.
+          case "$ID" in
+            *[!A-Za-z0-9._-]*)
+              echo "::error::client_payload field id contains unexpected characters: $ID"
+              exit 1
+              ;;
+          esac
 
       - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
         with:

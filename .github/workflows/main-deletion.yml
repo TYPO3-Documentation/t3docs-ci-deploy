@@ -18,15 +18,26 @@ jobs:
           BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
           ID: ${{ github.event.client_payload.id }}
         run: |
-          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY ID; do
+          # These four become path segments in the remote commands below.
+          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
             value="${!name}"
             case "$value" in
               *[!A-Za-z0-9._-]* | *..* | .* | '')
-                echo "::error::client_payload field $name contains unexpected characters: $value"
+                echo "::error::client_payload field $name is not a plain path segment: $value"
                 exit 1
                 ;;
             esac
           done
+          # "id" only travels into the notification JSON, where a quote would
+          # break the body. It stays optional, and the notification steps run
+          # even when this step fails - this narrows the field, it does not
+          # gate them.
+          case "$ID" in
+            *[!A-Za-z0-9._-]*)
+              echo "::error::client_payload field id contains unexpected characters: $ID"
+              exit 1
+              ;;
+          esac
 
       - name: "Deleting ${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}:${{ github.event.client_payload.target_branch_directory }}"
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
@@ -42,7 +53,10 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           envs: TARGET_PATH,TYPE_SHORT,VENDOR,NAME,BRANCH_DIRECTORY
           script: |
-            : "${TARGET_PATH:?refusing to delete: TARGET_PATH is empty}"
+            # Every segment must have arrived. An empty one would collapse the
+            # path onto the documentation root, and drone-ssh omits the export
+            # for an empty value instead of failing.
+            : "${TARGET_PATH:?not set}" "${TYPE_SHORT:?not set}" "${VENDOR:?not set}" "${NAME:?not set}" "${BRANCH_DIRECTORY:?not set}"
             rm -Rf "$TARGET_PATH/$TYPE_SHORT/$VENDOR/$NAME/$BRANCH_DIRECTORY"
 
       - name: Deleting search data
