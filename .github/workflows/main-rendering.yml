@@ -10,11 +10,27 @@ jobs:
     if: ${{ github.event.client_payload.repository_url != '' && github.event.client_payload.source_branch != '' && github.event.client_payload.target_branch_directory != '' }}
     steps:
       - name: Validate payload
+        shell: bash
         env:
           REPOSITORY_URL: ${{ github.event.client_payload.repository_url }}
           SOURCE_BRANCH: ${{ github.event.client_payload.source_branch }}
           BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
+          TYPE_SHORT: ${{ github.event.client_payload.type_short }}
+          VENDOR: ${{ github.event.client_payload.vendor }}
+          NAME: ${{ github.event.client_payload.name }}
+          ID: ${{ github.event.client_payload.id }}
         run: |
+          # The deploy job builds remote paths from these, and "id" ends up inside
+          # the webhook JSON body. Fail here rather than after a full render.
+          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY ID; do
+            value="${!name}"
+            case "$value" in
+              *[!A-Za-z0-9._-]* | *..* | .* | '')
+                echo "::error::client_payload field $name contains unexpected characters: $value"
+                exit 1
+                ;;
+            esac
+          done
           # gh-render-action interpolates these into "git clone", so they must not
           # be able to carry shell metacharacters or extra git options.
           case "$REPOSITORY_URL" in
@@ -89,17 +105,19 @@ jobs:
     if: ${{ github.event.client_payload.type_short != '' && github.event.client_payload.vendor != '' && github.event.client_payload.name != '' && github.event.client_payload.target_branch_directory != ''}}
     steps:
       - name: Validate payload
+        shell: bash
         env:
           TYPE_SHORT: ${{ github.event.client_payload.type_short }}
           VENDOR: ${{ github.event.client_payload.vendor }}
           NAME: ${{ github.event.client_payload.name }}
           BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
+          ID: ${{ github.event.client_payload.id }}
         run: |
-          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
+          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY ID; do
             value="${!name}"
             case "$value" in
               *[!A-Za-z0-9._-]* | *..* | .* | '')
-                echo "::error::client_payload field $name is not a plain path segment: $value"
+                echo "::error::client_payload field $name contains unexpected characters: $value"
                 exit 1
                 ;;
             esac

@@ -10,17 +10,19 @@ jobs:
     if: ${{ github.event.client_payload.type_short != '' && github.event.client_payload.name != '' && github.event.client_payload.vendor != '' && github.event.client_payload.target_branch_directory != '' }}
     steps:
       - name: Validate payload
+        shell: bash
         env:
           TYPE_SHORT: ${{ github.event.client_payload.type_short }}
           VENDOR: ${{ github.event.client_payload.vendor }}
           NAME: ${{ github.event.client_payload.name }}
           BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
+          ID: ${{ github.event.client_payload.id }}
         run: |
-          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
+          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY ID; do
             value="${!name}"
             case "$value" in
               *[!A-Za-z0-9._-]* | *..* | .* | '')
-                echo "::error::client_payload field $name is not a plain path segment: $value"
+                echo "::error::client_payload field $name contains unexpected characters: $value"
                 exit 1
                 ;;
             esac
@@ -39,7 +41,9 @@ jobs:
           username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
           key: ${{ secrets.DEPLOY_KEY }}
           envs: TARGET_PATH,TYPE_SHORT,VENDOR,NAME,BRANCH_DIRECTORY
-          script: rm -Rf "$TARGET_PATH/$TYPE_SHORT/$VENDOR/$NAME/$BRANCH_DIRECTORY"
+          script: |
+            : "${TARGET_PATH:?refusing to delete: TARGET_PATH is empty}"
+            rm -Rf "$TARGET_PATH/$TYPE_SHORT/$VENDOR/$NAME/$BRANCH_DIRECTORY"
 
       - name: Deleting search data
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
