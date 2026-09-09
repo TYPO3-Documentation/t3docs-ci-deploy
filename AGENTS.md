@@ -42,9 +42,8 @@ target path as `client_payload`.
 2.  **Actions must stay SHA-pinned.** The organisation enforces an allow-list
     of SHA-pinned actions. Never replace a pin with a tag.
 3.  **The reusable workflows are no longer in this repository.** They live in
-    `TYPO3-Documentation/.github` and are referenced as
-    `TYPO3-Documentation/.github/.github/workflows/<name>@main`. `README.md`
-    still documents them as living here; that section is out of date.
+    `TYPO3-Documentation/.github`, which documents them, and are referenced as
+    `TYPO3-Documentation/.github/.github/workflows/<name>@main`.
 4.  **GitHub disables a scheduled workflow after 60 days without a commit to
     this repository**, and does so silently — the runs stop and no failed run
     appears. Both `fluid-viewhelper.yml` and `api-typo3-org.yml` died this way
