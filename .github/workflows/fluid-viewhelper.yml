@@ -10,17 +10,25 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        core: ['main', '13.4', '12.4']
+        include:
+          # TYPO3 main is 15.0.x-dev and requires PHP ^8.5, the released
+          # branches do not, so the PHP version belongs to the matrix entry.
+          - core: 'main'
+            php: '8.5'
+          - core: '14.3'
+            php: '8.4'
+          - core: '13.4'
+            php: '8.4'
       fail-fast: false
     env:
       TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
     steps:
 
-      - name: Setup PHP 8.2
+      - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # 2.37.1
         with:
-          php-version: '8.2'
-      
+          php-version: ${{ matrix.php }}
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
