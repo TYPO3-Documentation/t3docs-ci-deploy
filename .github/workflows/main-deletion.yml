@@ -9,27 +9,69 @@ jobs:
     name: "Delete ${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}:${{ github.event.client_payload.target_branch_directory }}"
     if: ${{ github.event.client_payload.type_short != '' && github.event.client_payload.name != '' && github.event.client_payload.vendor != '' && github.event.client_payload.target_branch_directory != '' }}
     steps:
+      - name: Validate payload
+        shell: bash
+        env:
+          TYPE_SHORT: ${{ github.event.client_payload.type_short }}
+          VENDOR: ${{ github.event.client_payload.vendor }}
+          NAME: ${{ github.event.client_payload.name }}
+          BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
+        run: |
+          # These four become path segments in the remote commands below. A
+          # leading dash would additionally be read as an option by the console
+          # command in the search step. The value is never echoed: it may
+          # contain a newline, and a second line starting with "::" would be
+          # read as a workflow command.
+          for name in TYPE_SHORT VENDOR NAME BRANCH_DIRECTORY; do
+            value="${!name}"
+            case "$value" in
+              *[!A-Za-z0-9._-]* | *..* | .* | -* | '')
+                echo "::error::client_payload field $name is not a plain path segment"
+                exit 1
+                ;;
+            esac
+          done
+
       - name: "Deleting ${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}:${{ github.event.client_payload.target_branch_directory }}"
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+        env:
+          TARGET_PATH: ${{ secrets.TARGET_PATH }}
+          TYPE_SHORT: ${{ github.event.client_payload.type_short }}
+          VENDOR: ${{ github.event.client_payload.vendor }}
+          NAME: ${{ github.event.client_payload.name }}
+          BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
         with:
           host: ${{ secrets.DEPLOY_DOCS_HOST }}
           username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
           key: ${{ secrets.DEPLOY_KEY }}
-          script: rm -Rf ${{ secrets.TARGET_PATH }}/${{ github.event.client_payload.type_short }}/${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }}/${{ github.event.client_payload.target_branch_directory }}
+          envs: TARGET_PATH,TYPE_SHORT,VENDOR,NAME,BRANCH_DIRECTORY
+          script: |
+            # Every segment must have arrived. An empty one would collapse the
+            # path onto the documentation root, and nothing between the payload
+            # and this line reports an empty value as an error.
+            : "${TARGET_PATH:?not set}" "${TYPE_SHORT:?not set}" "${VENDOR:?not set}" "${NAME:?not set}" "${BRANCH_DIRECTORY:?not set}"
+            rm -Rf "$TARGET_PATH/$TYPE_SHORT/$VENDOR/$NAME/$BRANCH_DIRECTORY"
 
       - name: Deleting search data
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+        env:
+          TYPE_SHORT: ${{ github.event.client_payload.type_short }}
+          VENDOR: ${{ github.event.client_payload.vendor }}
+          NAME: ${{ github.event.client_payload.name }}
+          BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
         with:
           host: ${{ secrets.DEPLOY_DOCS_HOST }}
           username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
           key: ${{ secrets.DEPLOY_KEY }}
           command_timeout: 1m
+          envs: TYPE_SHORT,VENDOR,NAME,BRANCH_DIRECTORY
           script: |
             export APP_ENV=prod
-            export APP_SECRET=${{ secrets.DOC_SEARCH_APP_SECRET }}
-            export DOCS_ROOT_PATH=${{ secrets.TARGET_PATH }}
-            cd ${{ secrets.DOC_SEARCH_PATH }}
-            ./bin/console docsearch:index:delete --manual-type=${{ github.event.client_payload.type_short }} --manual-package=${{ github.event.client_payload.vendor }}/${{ github.event.client_payload.name }} --manual-version=${{ github.event.client_payload.target_branch_directory }}
+            export APP_SECRET="${{ secrets.DOC_SEARCH_APP_SECRET }}"
+            export DOCS_ROOT_PATH="${{ secrets.TARGET_PATH }}"
+            : "${TYPE_SHORT:?not set}" "${VENDOR:?not set}" "${NAME:?not set}" "${BRANCH_DIRECTORY:?not set}"
+            cd "${{ secrets.DOC_SEARCH_PATH }}"
+            ./bin/console docsearch:index:delete --manual-type="$TYPE_SHORT" --manual-package="$VENDOR/$NAME" --manual-version="$BRANCH_DIRECTORY"
 
       - name: Notify on failure
         if: ${{ failure() }}
@@ -37,7 +79,8 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":false,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: >-
+            {"success":false,"id":${{ toJSON(format('{0}', github.event.client_payload.id)) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
 
       - name: Notify on success
         if: ${{ success() }}
@@ -45,4 +88,5 @@ jobs:
         env:
           webhook_url: ${{ secrets.WEBHOOK_DELETION_URL }}
           webhook_secret: ${{ secrets.WEBHOOK_SECRET }}
-          data: '{"success":true,"id":"${{ github.event.client_payload.id }}","link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}'
+          data: >-
+            {"success":true,"id":${{ toJSON(format('{0}', github.event.client_payload.id)) }},"link":"https://github.com/TYPO3-Documentation/t3docs-ci-deploy/actions/runs/${{ github.run_id }}"}
