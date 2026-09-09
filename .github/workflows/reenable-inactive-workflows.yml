@@ -1,0 +1,39 @@
+name: Re-enable workflows disabled by inactivity
+
+# GitHub disables a scheduled workflow after 60 days without repository
+# activity, and does so silently. This job switches those workflows back on
+# across the organisation once a week.
+#
+# It always commits its report, even when nothing was found. That commit is
+# deliberate: it is repository activity, and so it keeps the scheduled
+# workflows of this repository - including this one - from being disabled.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * 1'
+
+jobs:
+  reenable:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          token: ${{ secrets.GH_PUSH_TOKEN }}
+
+      - name: Re-enable workflows disabled by inactivity
+        env:
+          GH_TOKEN: ${{ secrets.GH_PUSH_TOKEN }}
+        run: |
+          ./Build/Scripts/reenableInactiveWorkflows.sh \
+            --report Build/inactive-workflows-report.md
+
+      - name: Commit the report
+        run: |
+          git config user.name "TYPO3 Documentation Team"
+          git config user.email "documentation-automation@typo3.com"
+          git add Build/inactive-workflows-report.md
+          git commit -m '[BOT][TASK] Check for workflows disabled by inactivity'
+          git push

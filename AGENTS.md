@@ -28,6 +28,7 @@ Build/Scripts/                                  helper scripts called by workflo
 | `redirects.yml` | dispatch | deploys the redirect configuration |
 | `fluid-viewhelper.yml` | daily 01:00 UTC | generates the Fluid ViewHelper reference |
 | `api-typo3-org.yml` | daily 01:00 UTC | renders api.typo3.org |
+| `reenable-inactive-workflows.yml` | weekly, Monday 05:00 UTC | switches workflows disabled by inactivity back on, organisation-wide |
 
 The two `repository_dispatch` workflows are triggered by **Intercept**
 (`intercept.typo3.com`), which sends the manual's repository, branch and
@@ -48,6 +49,9 @@ target path as `client_payload`.
     this repository**, and does so silently — the runs stop and no failed run
     appears. Both `fluid-viewhelper.yml` and `api-typo3-org.yml` died this way
     in August 2026 and nobody noticed for a month.
+    `reenable-inactive-workflows.yml` now switches such workflows back on and
+    commits its report on every run, which is what keeps this repository's own
+    schedules alive. Do not remove that commit as noise.
 5.  **`fluid-viewhelper.yml` is a matrix over TYPO3 versions**, and each entry
     pins its own PHP version because TYPO3 `main` needs a newer PHP than the
     released branches. Adding a version means adding both
