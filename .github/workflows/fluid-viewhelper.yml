@@ -51,7 +51,13 @@ jobs:
         working-directory: ./viewhelpers
         continue-on-error: true
         run: |
-          rsync -av --exclude='*.json' --ignore-existing ../documentation/ Documentation/
+          # Paths listed in .viewhelper-generator-ignore, relative to Documentation/,
+          # are documented elsewhere in the manual and must not be generated again.
+          exclude=()
+          if [ -f .viewhelper-generator-ignore ]; then
+            exclude=(--exclude-from=.viewhelper-generator-ignore)
+          fi
+          rsync -av --exclude='*.json' "${exclude[@]}" --ignore-existing ../documentation/ Documentation/
           rsync -av --include='*.json' --exclude='*' ../documentation/ Documentation/
           git checkout HEAD -- Documentation/Index.rst
           git config user.name "TYPO3 Documentation Team"

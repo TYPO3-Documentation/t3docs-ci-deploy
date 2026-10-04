@@ -43,6 +43,12 @@ reStructuredText files are only added, never overwritten, so hand-written pages
 are safe. The JSON files are always replaced, which is what keeps descriptions
 and argument tables current on pages that already exist.
 
+A page the manual documents elsewhere, for example a ViewHelper explained as a
+section of its parent's page, would be added again every day once deleted. The
+manual lists such paths in `.viewhelper-generator-ignore` at its root, one
+rsync exclude pattern per line relative to `Documentation/`, and the workflow
+skips them.
+
 Adding a TYPO3 version needs **two** changes: a new directory under
 `Build/fluid-viewhelpers/`, and an entry in the workflow's matrix. The matrix
 entry also pins the PHP version, because TYPO3 `main` requires a newer PHP than
