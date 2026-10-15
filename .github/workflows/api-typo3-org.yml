@@ -13,6 +13,10 @@ jobs:
         core: ['main', '14.3', '13.4', '12.4', '11.5']
     env:
       TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
+      # The same image as PHPDOC_IMAGE in the Makefile of render-guides. The
+      # phpDocumentor extensions in t3docs-typo3-api need it: the released
+      # phpdoc/phpdoc:3 is too old for them, and 3-unstable changes daily.
+      PHPDOC_IMAGE: phpdoc/phpdoc:3-unstable@sha256:68495f7aed4189a3197768893a2edae9786dcb6745e23148932ab1c0c976015f
     steps:
       - name: Checkout Doxygen API
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -35,8 +39,8 @@ jobs:
         run: |
           mkdir -p output/${{ matrix.core }}
           docker run --rm \
-            -v $(pwd):/data \
-            phpdoc/phpdoc:3 --target output/${{ matrix.core }} --setting template.typo3_version=${{ matrix.core }}
+            -v "$(pwd):/data" \
+            "$PHPDOC_IMAGE" --target output/${{ matrix.core }} --setting template.typo3_version=${{ matrix.core }}
 
       - name: SCP files to production system
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
