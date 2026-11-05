@@ -6,11 +6,27 @@ on:
     - cron: '0 1 * * *'
 
 jobs:
+  versions:
+    runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.versions.outputs.core }}
+    steps:
+      - name: Checkout Doxygen API
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          repository: 'TYPO3-Documentation/t3docs-typo3-api'
+          path: .phpdoc
+
+      - name: Read the versions of the API
+        id: versions
+        run: echo "core=$(jq -c '[.[].version]' .phpdoc/template/versions.json)" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: versions
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        core: ['main', '14.3', '13.4', '12.4', '11.5']
+        core: ${{ fromJSON(needs.versions.outputs.core) }}
     env:
       TARGET_PATH: ${{ secrets.API_TARGET_PATH }}/${{ matrix.core }}
       # The same image as PHPDOC_IMAGE in the Makefile of render-guides. The
@@ -42,6 +58,13 @@ jobs:
             -v "$(pwd):/data" \
             "$PHPDOC_IMAGE" --target output/${{ matrix.core }} --setting template.typo3_version=${{ matrix.core }}
 
+      # The start page belongs to no version. Every render writes it, so it
+      # must not stay in the folder of the version.
+      - name: Take the start page out of the version
+        run: |
+          mkdir home
+          mv output/${{ matrix.core }}/home.html home/index.html
+
       - name: SCP files to production system
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
         with:
@@ -53,3 +76,17 @@ jobs:
           strip_components: 2
           tar_tmp_path: ${{ secrets.API_TMP_TARGET_PATH }}
           target: ${{ env.TARGET_PATH }}
+
+      - name: SCP the start page to the web root
+        if: matrix.core == 'main'
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
+        with:
+          host: ${{ secrets.DEPLOY_DOCS_API_HOST }}
+          username: ${{ secrets.DEPLOY_DOCS_API_USERNAME }}
+          key: ${{ secrets.DEPLOY_DOCS_API_KEY }}
+          source: "home/index.html"
+          # important - the api docs themselves are kept in the same directory
+          rm: false
+          strip_components: 1
+          tar_tmp_path: ${{ secrets.API_TMP_TARGET_PATH }}
+          target: ${{ secrets.API_TARGET_PATH }}

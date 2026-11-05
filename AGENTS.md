@@ -27,7 +27,7 @@ Build/Scripts/                                  helper scripts called by workflo
 | `main-deletion.yml` | `repository_dispatch: delete` | removes one manual and its search data |
 | `redirects.yml` | dispatch | deploys the redirect configuration |
 | `fluid-viewhelper.yml` | daily 01:00 UTC | generates the Fluid ViewHelper reference |
-| `api-typo3-org.yml` | daily 01:00 UTC | renders api.typo3.org |
+| `api-typo3-org.yml` | daily 01:00 UTC | renders api.typo3.org and its start page, for the versions in `versions.json` of the split `t3docs-typo3-api` |
 | `reenable-inactive-workflows.yml` | weekly, Monday 05:00 UTC | switches workflows disabled by inactivity back on, organisation-wide |
 
 The two `repository_dispatch` workflows are triggered by **Intercept**
