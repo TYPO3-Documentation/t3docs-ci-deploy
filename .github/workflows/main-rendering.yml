@@ -238,6 +238,46 @@ jobs:
             cd "${{ secrets.DOC_SEARCH_PATH }}"
             ./bin/console docsearch:import "$TYPE_SHORT/$VENDOR/$NAME/$BRANCH_DIRECTORY"
 
+      - name: Update permalink data
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+        env:
+          TYPE_SHORT: ${{ github.event.client_payload.type_short }}
+          VENDOR: ${{ github.event.client_payload.vendor }}
+          NAME: ${{ github.event.client_payload.name }}
+          BRANCH_DIRECTORY: ${{ github.event.client_payload.target_branch_directory }}
+        with:
+          host: ${{ secrets.DEPLOY_DOCS_HOST }}
+          username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          command_timeout: 20m
+          envs: TYPE_SHORT,VENDOR,NAME,BRANCH_DIRECTORY
+          script: |
+            export DOCS_ROOT_PATH="${{ secrets.TARGET_PATH }}"
+            export PERMALINK_INDEX_PATH="${{ secrets.PERMALINK_INDEX_PATH }}"
+            export PERMALINK_DB_PATH="${{ secrets.PERMALINK_DB_PATH }}"
+            export DOCS_BASE_URL="${{ secrets.DOCS_BASE_URL }}"
+            : "${TYPE_SHORT:?not set}" "${VENDOR:?not set}" "${NAME:?not set}" "${BRANCH_DIRECTORY:?not set}"
+            : "${DOCS_ROOT_PATH:?not set}" "${PERMALINK_INDEX_PATH:?not set}" "${PERMALINK_DB_PATH:?not set}" "${DOCS_BASE_URL:?not set}"
+            set -e
+            artifact="$TYPE_SHORT/$VENDOR/$NAME/$BRANCH_DIRECTORY"
+            cd "$PERMALINK_INDEX_PATH"
+            # Every language directory of a manual carries its own inventory,
+            # and a deployment may ship several of them.
+            if [ -z "$(find "$DOCS_ROOT_PATH/$artifact" -name objects.inv.json -print -quit)" ]; then
+              echo "No objects.inv.json below $artifact, skipping permalink indexing"
+              exit 0
+            fi
+            find "$DOCS_ROOT_PATH/$artifact" -name objects.inv.json -print | sort | while read -r inventory; do
+              language=$(basename "$(dirname "$inventory")")
+              echo "Indexing $artifact/$language"
+              ./bin/typo3-guides index-inventory "$inventory" \
+                --database="$PERMALINK_DB_PATH" \
+                --repository="$NAME" \
+                --url="$DOCS_BASE_URL/$artifact/$language/" \
+                --version="$BRANCH_DIRECTORY" \
+                --language="$language"
+            done
+
       - name: Notify on failure
         if: ${{ failure() }}
         uses: distributhor/workflow-webhook@2381f0e9c7b6bf061fb1405bd0804b8706116369
