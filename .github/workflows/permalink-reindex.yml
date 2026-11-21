@@ -1,0 +1,92 @@
+name: Permalink Reindex
+
+# Rebuilds the permalink database from every manual that is published on the
+# documentation host. The deploy job indexes a manual right after it has been
+# uploaded, so this is not needed for normal operation: it exists to fill the
+# database for the first time and to recover from a corrupted one.
+#
+# The rebuild writes a new database next to the configured one and replaces
+# it only after the last inventory has been indexed, so a failed run leaves
+# the current database in place instead of a half-filled one.
+on:
+  workflow_dispatch:
+
+jobs:
+  reindex:
+    runs-on: ubuntu-latest
+    name: Rebuild the permalink database
+    steps:
+      # Walking the document root and starting the indexer once per manual
+      # takes far longer than a deployment, which indexes a single manual.
+      - name: Rebuild permalink database
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+        env:
+          DOCS_ROOT_PATH: ${{ secrets.TARGET_PATH }}
+          PERMALINK_INDEX_PATH: ${{ secrets.PERMALINK_INDEX_PATH }}
+          PERMALINK_DB_PATH: ${{ secrets.PERMALINK_DB_PATH }}
+          DOCS_BASE_URL: ${{ secrets.DOCS_BASE_URL }}
+        with:
+          host: ${{ secrets.DEPLOY_DOCS_HOST }}
+          username: ${{ secrets.DEPLOY_DOCS_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          command_timeout: 120m
+          envs: DOCS_ROOT_PATH,PERMALINK_INDEX_PATH,PERMALINK_DB_PATH,DOCS_BASE_URL
+          script: |
+            set -eu
+
+            : "${DOCS_ROOT_PATH:?not set}"
+            : "${PERMALINK_INDEX_PATH:?not set}"
+            : "${PERMALINK_DB_PATH:?not set}"
+            : "${DOCS_BASE_URL:?not set}"
+            DOCS_BASE_URL=${DOCS_BASE_URL%/}
+
+            indexer="$PERMALINK_INDEX_PATH/bin/typo3-guides"
+            [ -x "$indexer" ] || { echo "Not executable: $indexer" >&2; exit 1; }
+            [ -d "$DOCS_ROOT_PATH" ] || { echo "No document root: $DOCS_ROOT_PATH" >&2; exit 1; }
+            database_dir=$(dirname "$PERMALINK_DB_PATH")
+            [ -d "$database_dir" ] || { echo "No database directory: $database_dir" >&2; exit 1; }
+
+            umask 002
+            build="$PERMALINK_DB_PATH.rebuild.$$"
+            list="$build.list"
+            rm -f "$build" "$list"
+            trap 'rm -f "$build" "$list"' EXIT INT TERM
+
+            find "$DOCS_ROOT_PATH" -type f -name objects.inv.json | sort > "$list"
+            echo "$(wc -l < "$list") inventories below $DOCS_ROOT_PATH"
+
+            indexed=0
+            skipped=0
+            while IFS= read -r inventory; do
+              relative=${inventory#"$DOCS_ROOT_PATH"/}
+              path=${relative%/objects.inv.json}
+              # A manual is <type>/<vendor>/<name>/<version>/<language>.
+              # Anything else cannot be mapped onto the schema without
+              # guessing, so it is reported rather than indexed with invented
+              # metadata. Redirects for old manuals have no inventory at all.
+              set -- $(printf '%s' "$path" | awk -F/ 'NF == 5 { print $1, $2, $3, $4, $5 }')
+              if [ $# -ne 5 ]; then
+                echo "Skipping $relative: not a manual directory"
+                skipped=$((skipped + 1))
+                continue
+              fi
+              type_short=$1 vendor=$2 name=$3 version=$4 language=$5
+              "$indexer" index-inventory "$inventory" \
+                --database="$build" \
+                --repository="$name" \
+                --url="$DOCS_BASE_URL/$type_short/$vendor/$name/$version/$language/" \
+                --version="$version" \
+                --language="$language"
+              indexed=$((indexed + 1))
+            done < "$list"
+
+            [ -f "$build" ] || { echo "The indexer did not create $build" >&2; exit 1; }
+            if [ "$indexed" -eq 0 ]; then
+              echo "No inventories were indexed, keeping $PERMALINK_DB_PATH" >&2
+              exit 1
+            fi
+
+            mv -f "$build" "$PERMALINK_DB_PATH"
+            rm -f "$list"
+            trap - EXIT INT TERM
+            echo "Indexed $indexed inventories, skipped $skipped; replaced $PERMALINK_DB_PATH"
